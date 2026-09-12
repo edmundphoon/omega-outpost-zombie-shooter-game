@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Defender 3D - Outpost Omega</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Load Three.js (Local offline priority with CDN fallback) -->
+    <script src="three.min.js"></script>
+    <script>if (typeof THREE === 'undefined') document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+</head>
+<body>
+    <!-- 3D Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- 10-Second Boss Cinematic Overlay with Letterboxes & Intel Card -->
+    <div id="cinematic-overlay" class="cinematic-container hidden">
+        <div class="letterbox letterbox-top"></div>
+        <div class="cinematic-card">
+            <div id="cinematic-badge" class="cinematic-badge">⚠️ CRITICAL APEX MUTATION DETECTED ⚠️</div>
+            <h1 id="cinematic-title">THE HUNTER</h1>
+            <div id="cinematic-subtitle" class="cinematic-subtitle">SHADOW CAMOUFLAGE PREDATOR</div>
+            <p id="cinematic-intel" class="cinematic-intel">Feral stalker blending into wasteland shadows. Circling perimeter before leaping.</p>
+        </div>
+        <div id="cinematic-skip-hint" class="cinematic-skip-hint">
+            <span>PRESS [SPACE] OR CLICK TO SKIP</span>
+            <div class="cinematic-progress-bar"><div id="cinematic-progress-fill"></div></div>
+        </div>
+        <div class="letterbox letterbox-bottom"></div>
+    </div>
+
+    <!-- Boss Wave Announcement Banner -->
+    <div id="boss-announce" class="boss-announce-banner hidden">
+        <div class="boss-announce-badge">⚠️ CRITICAL BOSS THREAT DETECTED ⚠️</div>
+        <h1 id="boss-announce-title">THE HUNTER APPROACHES</h1>
+        <p id="boss-announce-desc">A hooded feral predator has breached the perimeter!</p>
+    </div>
+
+    <!-- Interactive Boss Telegraph Warning Banner -->
+    <div id="boss-telegraph" class="boss-telegraph hidden">
+        <span id="boss-telegraph-text">⚠️ INCOMING ATTACK!</span>
+    </div>
+
+    <!-- Valkyrie Dive-Bomb Warning Banner -->
+    <div id="dive-alert" class="dive-alert hidden">
+        <span>⚠️ VALKYRIE DIVE-BOMBING! CONCENTRATE FIRE TO STAGGER! ⚠️</span>
+    </div>
+
+    <!-- Boss Health Bar (Top Center) -->
+    <div id="boss-hud" class="boss-hud hidden">
+        <div class="boss-header">
+            <div>
+                <span id="boss-name" class="boss-title">THE HUNTER</span>
+                <span id="boss-subtitle" class="boss-sub-tag">HOODED FERAL PREDATOR</span>
+            </div>
+            <span id="boss-hp-val" class="boss-hp-text">100%</span>
+        </div>
+        <div class="boss-bar-container">
+            <div id="boss-bar-fill"></div>
+            <div class="boss-phase-marker" style="left: 50%;"></div>
+        </div>
+    </div>
+
+    <!-- Power-Up Notification Banner -->
+    <div id="powerup-notify" class="powerup-notify hidden">
+        <span id="powerup-notify-text">NANO-REPAIR ACTIVATED</span>
+    </div>
+
+    <!-- Jammed Cooldown Alert -->
+    <div id="jammed-alert" class="jammed-alert hidden">
+        <span>⚠️ WEAPON OVERHEATED - COOLING DOWN ⚠️</span>
+    </div>
+
+    <!-- Main HUD Overlay -->
+    <div id="hud" class="ui-overlay hidden">
+        <div class="hud-top">
+            <div class="hud-card">
+                <span class="hud-title">SCORE</span>
+                <span id="score-value" class="hud-val">0</span>
+            </div>
+            <div class="hud-card">
+                <span class="hud-title">WAVE</span>
+                <span id="wave-value" class="hud-val">1</span>
+            </div>
+            <div class="hud-card enemy-info">
+                <span class="hud-title">ENEMIES LEFT</span>
+                <span id="enemies-left" class="hud-val">0</span>
+            </div>
+
+            <!-- Heat Gauge Card -->
+            <div id="heat-card" class="hud-card heat-hud">
+                <div class="heat-header">
+                    <span id="heat-title" class="hud-title">BARREL HEAT</span>
+                    <span id="heat-val" class="heat-text">0%</span>
+                </div>
+                <div class="heat-bar-container">
+                    <div id="heat-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- Firepower Overdrive Boost Card -->
+            <div id="overdrive-card" class="hud-card overdrive-hud hidden">
+                <span class="hud-title">QUAD OVERDRIVE</span>
+                <span id="overdrive-timer" class="hud-val overdrive-val">12.0s</span>
+                <div class="overdrive-bar-container">
+                    <div id="overdrive-bar-fill"></div>
+                </div>
+            </div>
+            <!-- Audio, Guide, Leaderboard & Pause Controls -->
+            <button id="guide-hud-btn" class="hud-btn" title="Open Field Guide (G)">📖 GUIDE [G]</button>
+            <button id="leaderboard-hud-btn" class="hud-btn" title="View Leaderboard (L)">🏆 RANKS [L]</button>
+            <button id="sound-btn" class="hud-btn" title="Toggle Sound (M)">🔊 AUDIO [M]</button>
+            <button id="pause-btn" class="hud-btn" title="Pause Game (Esc)">⏸ PAUSE [ESC]</button>
+        </div>
+
+        <div class="hud-bottom">
+            <div class="health-header">
+                <span class="health-title">BUNKER INTEGRITY</span>
+                <span id="health-value">100%</span>
+            </div>
+            <div class="health-bar-container">
+                <div id="health-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="ui-overlay overlay-screen hidden">
+        <div class="panel tactical-panel pause-panel">
+            <div class="badge">SYSTEM SUSPENDED</div>
+            <h2>GAME PAUSED</h2>
+            <p class="subtitle">Tactical simulation is suspended</p>
+            <div class="instructions" style="text-align: center; margin-bottom: 20px;">
+                <p style="color: #94a3b8; font-size: 13px;">Press <strong style="color: #00f0ff;">[ESC]</strong> to resume | <strong style="color: #00f0ff;">[M]</strong> audio | <strong style="color: #00f0ff;">[G]</strong> guide | <strong style="color: #00f0ff;">[L]</strong> ranks.</p>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; width: 100%; flex-wrap: wrap;">
+                <button id="pause-guide-btn" class="hud-btn" style="padding: 12px 18px; font-size: 13px;">📖 FIELD GUIDE</button>
+                <button id="pause-leaderboard-btn" class="hud-btn" style="padding: 12px 18px; font-size: 13px;">🏆 LEADERBOARD</button>
+                <button id="pause-sound-btn" class="hud-btn" style="padding: 12px 18px; font-size: 13px;">🔊 AUDIO</button>
+                <button id="resume-btn" class="game-btn" style="margin-top: 0; padding: 12px 24px;">RESUME DEFENSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="start-overlay" class="ui-overlay overlay-screen">
+        <div class="panel tactical-panel">
+            <div class="badge">DEFENSE PROTOCOL ACTIVE</div>
+            <h1>OUTPOST OMEGA</h1>
+            <p class="subtitle">Tactical 3D Zombie Defense</p>
+            
+            <div class="instructions">
+                <h3>OPERATIONAL DIRECTIVES:</h3>
+                <ul>
+                    <li><strong style="color: #00f0ff;">Aim & Fire:</strong> Move mouse to aim dual autocannons. Hold <strong style="color: #00f0ff;">[Left Click]</strong> or press <strong style="color: #00f0ff;">[Space]</strong> to fire.</li>
+                    <li><strong style="color: #f59e0b;">Heat Management:</strong> Sustained firing builds barrel heat. Reaching 100% causes an emergency weapon jam. Fire in controlled bursts!</li>
+                    <li><strong style="color: #34d399;">Supply Drops:</strong> Eliminate glowing carrier zombies to secure <strong>Nano-Repair (+30% Health)</strong> and <strong>Quad Overdrive (12s Quad Fire)</strong> drops.</li>
+                    <li><strong style="color: #ef4444;">Boss Warning:</strong> High-threat Boss Mutations breach the perimeter on <strong>every 5th wave</strong> (Wave 5, 10, 15, 20...). Adapt and concentrate firepower to stagger them!</li>
+                    <li><strong style="color: #94a3b8;">Field Intel:</strong> Press <strong style="color: #00f0ff;">[G]</strong> to open the Field Manual or <strong style="color: #00f0ff;">[L]</strong> to view high scores.</li>
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: center; width: 100%; flex-wrap: wrap;">
+                <button id="start-guide-btn" class="hud-btn" style="padding: 14px 22px; font-size: 14px;">📖 FIELD GUIDE</button>
+                <button id="start-leaderboard-btn" class="hud-btn" style="padding: 14px 22px; font-size: 14px;">🏆 LEADERBOARD</button>
+                <button id="start-btn" class="game-btn" style="margin-top: 0;">DEPLOY TURRET</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="game-over-overlay" class="ui-overlay overlay-screen hidden">
+        <div class="panel game-over-panel tactical-panel">
+            <div class="badge alert">OUTPOST COMPROMISED</div>
+            <h2>BASE OVERRUN</h2>
+            <p class="final-score-text">You held the outpost until <strong>Wave <span id="final-wave">1</span></strong> with <strong><span id="final-score">0</span></strong> eliminated.</p>
+            
+            <!-- High Score Submission Form -->
+            <div id="score-submit-container" class="score-submit-box">
+                <label for="player-callsign-input" class="callsign-label">DEFENDER CALLSIGN:</label>
+                <div style="display: flex; gap: 8px; justify-content: center; margin-top: 6px;">
+                    <input type="text" id="player-callsign-input" maxlength="12" placeholder="COMMANDER" class="callsign-input">
+                    <button id="submit-score-btn" class="hud-btn" style="padding: 8px 16px;">SAVE RECORD</button>
+                </div>
+                <div id="save-status-msg" class="save-status-text"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; width: 100%; margin-top: 14px; flex-wrap: wrap;">
+                <button id="game-over-guide-btn" class="hud-btn" style="padding: 12px 18px;">📖 FIELD GUIDE</button>
+                <button id="game-over-leaderboard-btn" class="hud-btn" style="padding: 12px 18px;">🏆 LEADERBOARD</button>
+                <button id="restart-btn" class="game-btn alert-btn" style="margin-top: 0;">REINFORCE & RETRY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Leaderboard Modal -->
+    <div id="leaderboard-modal" class="ui-overlay modal-screen hidden">
+        <div class="panel modal-panel">
+            <div class="modal-header">
+                <div class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">
+                    CLASSIFIED ARCHIVE
+                </div>
+                <h2>🏆 DEFENDER LEADERBOARD</h2>
+                <p class="subtitle">Top Outpost Defense Operations on Record</p>
+            </div>
+
+            <div class="leaderboard-table-container">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>RANK</th>
+                            <th>CALLSIGN</th>
+                            <th>SCORE</th>
+                            <th>WAVE</th>
+                            <th>DATE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-tbody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer">
+                <button id="clear-leaderboard-btn" class="hud-btn" style="color: #f87171; border-color: rgba(239, 68, 68, 0.3);">CLEAR RECORDS</button>
+                <button id="close-leaderboard-btn" class="game-btn" style="margin-top: 0; padding: 10px 24px;">CLOSE [ESC]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Tactical Field Guide Modal -->
+    <div id="guide-modal" class="ui-overlay modal-screen hidden">
+        <div class="panel modal-panel guide-panel">
+            <div class="modal-header">
+                <div class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border-color: rgba(6, 182, 212, 0.4);">
+                    TACTICAL INTEL DATABASE
+                </div>
+                <h2>📖 OUTPOST FIELD MANUAL</h2>
+                <p class="subtitle">Comprehensive Guide to Turret Systems, Resource Drops & Threat Intel</p>
+            </div>
+
+            <!-- Tab Navigation Bar -->
+            <div class="guide-nav-tabs">
+                <button class="guide-tab-btn active" data-tab="tab-turret">🔫 TURRET SYSTEMS</button>
+                <button class="guide-tab-btn" data-tab="tab-resources">📦 SUPPLY DROPS</button>
+                <button class="guide-tab-btn" data-tab="tab-threats">🧟 THREAT ROSTER</button>
+            </div>
+
+            <!-- Tab Content Container -->
+            <div class="guide-tab-content-wrapper">
+                <!-- TAB 1: TURRET SYSTEMS -->
+                <div id="tab-turret" class="guide-tab-pane active">
+                    <div class="guide-grid">
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="turretBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#334155" />
+                                            <stop offset="100%" stop-color="#0f172a" />
+                                        </linearGradient>
+                                        <linearGradient id="plasmaGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#00f0ff" />
+                                            <stop offset="100%" stop-color="#3b82f6" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Base & Mount -->
+                                    <polygon points="60,85 140,85 125,65 75,65" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
+                                    <circle cx="100" cy="60" r="22" fill="url(#turretBody)" stroke="#00f0ff" stroke-width="1.5" />
+                                    <!-- Dual Barrels -->
+                                    <rect x="86" y="20" width="8" height="42" rx="2" fill="#475569" stroke="#64748b" stroke-width="1" />
+                                    <rect x="106" y="20" width="8" height="42" rx="2" fill="#475569" stroke="#64748b" stroke-width="1" />
+                                    <!-- Plasma Energy Conduits -->
+                                    <line x1="90" y1="24" x2="90" y2="55" stroke="url(#plasmaGlow)" stroke-width="3" stroke-linecap="round" />
+                                    <line x1="110" y1="24" x2="110" y2="55" stroke="url(#plasmaGlow)" stroke-width="3" stroke-linecap="round" />
+                                    <!-- Muzzle Flares -->
+                                    <circle cx="90" cy="18" r="4" fill="#00f0ff" opacity="0.8" />
+                                    <circle cx="110" cy="18" r="4" fill="#00f0ff" opacity="0.8" />
+                                    <!-- Crosshair Overlay -->
+                                    <circle cx="100" cy="30" r="16" fill="none" stroke="#00f0ff" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" />
+                                    <line x1="100" y1="10" x2="100" y2="50" stroke="#00f0ff" stroke-width="0.8" opacity="0.4" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">⚡</span>
+                                <div>
+                                    <h4 class="guide-card-title">DUAL PLASMA AUTOCANNON</h4>
+                                    <span class="guide-card-tag tag-cyan">PRIMARY WEAPON</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">High-velocity dual plasma kinetic cannons engineered for point-defense. Alternates left and right barrels with visual shell ejection and recoil dampening.</p>
+                            <div class="guide-stat-row">
+                                <span>Fire Rate: <strong>Rapid (Semi/Auto)</strong></span>
+                                <span>Damage: <strong>1.0 / round</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="heatGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                                            <stop offset="0%" stop-color="#1e293b" />
+                                            <stop offset="60%" stop-color="#f59e0b" />
+                                            <stop offset="100%" stop-color="#ef4444" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Barrel Silhouette -->
+                                    <rect x="75" y="25" width="50" height="50" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+                                    <!-- Temperature Gauge Arc -->
+                                    <path d="M 65 75 A 40 40 0 1 1 135 75" fill="none" stroke="#334155" stroke-width="8" stroke-linecap="round" />
+                                    <path d="M 65 75 A 40 40 0 1 1 125 45" fill="none" stroke="url(#heatGrad)" stroke-width="8" stroke-linecap="round" />
+                                    <!-- Thermal Warning Core -->
+                                    <polygon points="100,38 112,60 88,60" fill="#f59e0b" stroke="#ef4444" stroke-width="1.5" />
+                                    <text x="100" y="56" fill="#000" font-family="monospace" font-weight="bold" font-size="12" text-anchor="middle">!</text>
+                                    <!-- Venting Steam Particles -->
+                                    <circle cx="68" cy="30" r="3" fill="#94a3b8" opacity="0.4" />
+                                    <circle cx="132" cy="28" r="4" fill="#94a3b8" opacity="0.4" />
+                                    <circle cx="100" cy="18" r="2.5" fill="#f59e0b" opacity="0.6" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">🔥</span>
+                                <div>
+                                    <h4 class="guide-card-title">BARREL THERMAL MANAGEMENT</h4>
+                                    <span class="guide-card-tag tag-amber">HEAT & JAM SYSTEM</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">Continuous rapid fire generates barrel heat. If the heat gauge reaches <strong>100%</strong>, the turret suffers an emergency thermal jam, locking firing mechanisms for <strong>2.8s</strong> while steam vents.</p>
+                            <div class="guide-stat-row">
+                                <span>Heat / Shot: <strong>+3.8%</strong></span>
+                                <span>Cool Rate: <strong>22% / sec</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="goldPlasma" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#fbbf24" />
+                                            <stop offset="50%" stop-color="#f59e0b" />
+                                            <stop offset="100%" stop-color="#d97706" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Quad Heavy Barrels -->
+                                    <rect x="68" y="15" width="8" height="48" rx="2" fill="url(#goldPlasma)" stroke="#fef08a" stroke-width="1" />
+                                    <rect x="84" y="12" width="8" height="51" rx="2" fill="url(#goldPlasma)" stroke="#fef08a" stroke-width="1" />
+                                    <rect x="108" y="12" width="8" height="51" rx="2" fill="url(#goldPlasma)" stroke="#fef08a" stroke-width="1" />
+                                    <rect x="124" y="15" width="8" height="48" rx="2" fill="url(#goldPlasma)" stroke="#fef08a" stroke-width="1" />
+                                    <!-- Heavy Mount Chassis -->
+                                    <polygon points="55,80 145,80 130,55 70,55" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+                                    <!-- Gold Energy Arcs -->
+                                    <path d="M 64 25 Q 100 8 136 25" fill="none" stroke="#fef08a" stroke-width="2" opacity="0.8" />
+                                    <path d="M 72 38 Q 100 24 128 38" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.9" />
+                                    <!-- Muzzle Burst Highlights -->
+                                    <circle cx="72" cy="14" r="3.5" fill="#fff" />
+                                    <circle cx="88" cy="11" r="3.5" fill="#fff" />
+                                    <circle cx="112" cy="11" r="3.5" fill="#fff" />
+                                    <circle cx="128" cy="14" r="3.5" fill="#fff" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">💥</span>
+                                <div>
+                                    <h4 class="guide-card-title">QUAD OVERDRIVE SUPERCHARGER</h4>
+                                    <span class="guide-card-tag tag-gold">TACTICAL POWER-UP</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">Overcharges the power grid for <strong>12 seconds</strong>, firing all 4 gold barrels simultaneously with double kinetic yield. <strong>Destroys environmental obstacles</strong> (trees & rocks) and <strong>intercepts Screamer sonic waves</strong>.</p>
+                            <div class="guide-stat-row">
+                                <span>Salvo: <strong>4 Bullets / Click</strong></span>
+                                <span>Damage: <strong>2.0 / bullet (8.0 Total)</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SUPPLY DROPS -->
+                <div id="tab-resources" class="guide-tab-pane">
+                    <div class="guide-grid">
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="nanoCubeTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#34d399" />
+                                            <stop offset="100%" stop-color="#10b981" />
+                                        </linearGradient>
+                                        <linearGradient id="nanoCubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#059669" />
+                                            <stop offset="100%" stop-color="#047857" />
+                                        </linearGradient>
+                                        <linearGradient id="nanoCubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#10b981" />
+                                            <stop offset="100%" stop-color="#065f46" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Rotating Hologram Ring -->
+                                    <ellipse cx="100" cy="55" rx="46" ry="16" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.6" />
+                                    <!-- Isometric 3D Nanite Cube -->
+                                    <!-- Top Face -->
+                                    <polygon points="100,20 128,34 100,48 72,34" fill="url(#nanoCubeTop)" stroke="#6ee7b7" stroke-width="1.5" />
+                                    <!-- Left Face -->
+                                    <polygon points="72,34 100,48 100,78 72,64" fill="url(#nanoCubeLeft)" stroke="#34d399" stroke-width="1.5" />
+                                    <!-- Right Face -->
+                                    <polygon points="100,48 128,34 128,64 100,78" fill="url(#nanoCubeRight)" stroke="#34d399" stroke-width="1.5" />
+                                    <!-- Medical Nanite Cross on Top Face -->
+                                    <polygon points="97,26 103,26 103,31 108,31 108,37 103,37 103,42 97,42 97,37 92,37 92,31 97,31" fill="#ffffff" opacity="0.95" />
+                                    <!-- Floating Sparkle Particles -->
+                                    <circle cx="65" cy="28" r="2" fill="#6ee7b7" />
+                                    <circle cx="138" cy="32" r="2.5" fill="#34d399" />
+                                    <circle cx="100" cy="86" r="2" fill="#10b981" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">💚</span>
+                                <div>
+                                    <h4 class="guide-card-title">NANITE REPAIR MATRIX</h4>
+                                    <span class="guide-card-tag tag-green">GREEN CUBE</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">Advanced nanite structural repair canister. Shooting or passing near it deploys nanites to immediately restore <strong>+30% Bunker Integrity</strong> and flash green repair shielding.</p>
+                            <div class="guide-stat-row">
+                                <span>Restores: <strong>+30% Bunker Health</strong></span>
+                                <span>Carrier Ratio: <strong>High from Wave 11+</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="octaTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#fef08a" />
+                                            <stop offset="100%" stop-color="#f59e0b" />
+                                        </linearGradient>
+                                        <linearGradient id="octaBottom" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#d97706" />
+                                            <stop offset="100%" stop-color="#78350f" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Overdrive Energy Orbit Rings -->
+                                    <ellipse cx="100" cy="50" rx="48" ry="18" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.7" transform="rotate(-15 100 50)" />
+                                    <!-- 3D Gold Octahedron Core -->
+                                    <!-- Upper pyramids -->
+                                    <polygon points="100,16 128,48 100,54" fill="url(#octaTop)" stroke="#fef08a" stroke-width="1.5" />
+                                    <polygon points="100,16 72,48 100,54" fill="#fbbf24" stroke="#fef08a" stroke-width="1.5" />
+                                    <!-- Lower pyramids -->
+                                    <polygon points="100,84 128,48 100,54" fill="url(#octaBottom)" stroke="#f59e0b" stroke-width="1.5" />
+                                    <polygon points="100,84 72,48 100,54" fill="#b45309" stroke="#f59e0b" stroke-width="1.5" />
+                                    <!-- Electric Lightning Arcs -->
+                                    <path d="M 64 35 L 75 42 L 70 52 L 82 56" fill="none" stroke="#fde047" stroke-width="1.8" />
+                                    <path d="M 136 35 L 125 42 L 130 52 L 118 56" fill="none" stroke="#fde047" stroke-width="1.8" />
+                                    <!-- Core Glow Star -->
+                                    <circle cx="100" cy="50" r="5" fill="#ffffff" opacity="0.9" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">⭐</span>
+                                <div>
+                                    <h4 class="guide-card-title">QUAD OVERDRIVE CORE</h4>
+                                    <span class="guide-card-tag tag-gold">GOLD OCTAHEDRON</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">Dense plasma supercharger module. Instantly activates <strong>12 seconds of Quad Overdrive</strong>, clears barrel jam timers, and gives the turret supreme firepower.</p>
+                            <div class="guide-stat-row">
+                                <span>Duration: <strong>12.0 Seconds</strong></span>
+                                <span>Special: <strong>Obstacle Destruction</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="guide-card">
+                            <div class="guide-card-visual">
+                                <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="packGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#34d399" />
+                                            <stop offset="50%" stop-color="#10b981" />
+                                            <stop offset="100%" stop-color="#059669" />
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Zombie Carrier Silhouette -->
+                                    <!-- Torso & Arms -->
+                                    <polygon points="85,42 115,40 120,78 80,80" fill="#334155" stroke="#475569" stroke-width="1" />
+                                    <!-- Head & glowing eyes -->
+                                    <circle cx="100" cy="28" r="11" fill="#475569" stroke="#64748b" stroke-width="1" />
+                                    <circle cx="97" cy="26" r="1.5" fill="#ef4444" />
+                                    <circle cx="103" cy="26" r="1.5" fill="#ef4444" />
+                                    <!-- Backpack Cargo Crate -->
+                                    <rect x="74" y="44" width="14" height="24" rx="2" fill="url(#packGrad)" stroke="#6ee7b7" stroke-width="1.5" />
+                                    <!-- Gold Hazard Stripes on Pack -->
+                                    <line x1="75" y1="50" x2="87" y2="50" stroke="#fbbf24" stroke-width="2" />
+                                    <line x1="75" y1="58" x2="87" y2="58" stroke="#fbbf24" stroke-width="2" />
+                                    <!-- Backpack Harness Straps -->
+                                    <line x1="88" y1="46" x2="106" y2="54" stroke="#6ee7b7" stroke-width="1.5" />
+                                    <line x1="88" y1="62" x2="106" y2="68" stroke="#6ee7b7" stroke-width="1.5" />
+                                    <!-- Beacon Light on Pack -->
+                                    <circle cx="81" cy="40" r="3" fill="#34d399" />
+                                    <line x1="81" y1="36" x2="81" y2="28" stroke="#34d399" stroke-width="1" stroke-dasharray="2,2" />
+                                </svg>
+                            </div>
+                            <div class="guide-card-header">
+                                <span class="guide-card-icon">🎒</span>
+                                <div>
+                                    <h4 class="guide-card-title">RESOURCE CARRIER ZOMBIES</h4>
+                                    <span class="guide-card-tag tag-cyan">CARRIER IDENTIFICATION</span>
+                                </div>
+                            </div>
+                            <p class="guide-card-desc">Certain zombies spawn equipped with glowing <strong>green (Repair)</strong> or <strong>gold (Overdrive)</strong> supply backpacks. Upon being eliminated, they <strong>instantly drop their supply crate</strong> at frame 0.</p>
+                            <div class="guide-stat-row">
+                                <span>Pity Guarantee: <strong>Max 2 Non-Carriers</strong></span>
+                                <span>Eligible: <strong>Walkers, Runners, Brutes, Animals</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: THREAT ROSTER -->
+                <div id="tab-threats" class="guide-tab-pane">
+                    <!-- Category Filters -->
+                    <div class="guide-filter-bar">
+                        <button class="filter-btn active" data-filter="all">ALL THREATS</button>
+                        <button class="filter-btn" data-filter="standard">STANDARD (10)</button>
+                        <button class="filter-btn" data-filter="animal">ZOMBIE ANIMALS (3)</button>
+                        <button class="filter-btn" data-filter="boss">APEX BOSSES (6)</button>
+                    </div>
+
+                    <div id="threat-cards-container" class="guide-threat-grid">
+                        <!-- Populated by JS for complete threat intel -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="close-guide-btn" class="game-btn" style="margin-top: 0; padding: 10px 24px;">CLOSE MANUAL [ESC]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game logic script -->
+    <script src="game.js"></script>
+</body>
+</html>
