@@ -175,3 +175,35 @@ To embed Outpost Omega on your website, blog, CMS, or portal:
 - **Styling**: CSS3 Custom Properties, Cybernetic HUD Design, Rajdhani & Share Tech Mono Typography
 - **Compression & Encryption**: Pako (zlib/deflate) + Multi-byte Rolling XOR Cryptographic Cipher
 - **Packaging**: PowerShell Automated Build Pipeline
+
+
+## 🚀 How to Launch the Localhost Server
+You can start the terminal server using any of the following methods:
+
+**1. PowerShell (Recommended)**
+```bash
+.\server.ps1
+```
+
+_Optional parameters:_
+- Change port: `.\server.ps1 -Port 3000`
+- Suppress auto-opening browser: `.\server.ps1 -NoBrowser`
+
+**2. Double-Click / CMD Batch File**
+Double-click `start_server.bat` or run from Command Prompt:
+```bash
+start_server.bat
+```
+
+**3. Python 3 Alternative**
+```bash
+python server.py
+```
+
+## ✨ Server Features
+- Automatic Port Resolution: Defaults to http://localhost:8080/, automatically selecting the next open port if 8080 is in use.
+- Auto Browser Launch: Opens the game in your default browser on start.
+- Live Terminal Telemetry: Logs incoming HTTP requests, response status codes (200 OK, 404), and byte sizes in real-time.
+- Full Static Asset Support: Serves .html, .js, .css, .png, .svg, .json, and WebAssembly with proper MIME types, CORS headers, and no-cache policies.
+- Direct Dist Access: You can also navigate directly to http://localhost:8080/dist/index.html or http://localhost:8080/embed.html.
+- Graceful Shutdown: Press Ctrl+C in the terminal to stop the server at any time.
