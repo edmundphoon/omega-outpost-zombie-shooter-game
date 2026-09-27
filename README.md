@@ -115,6 +115,9 @@ zombie-defender/
 ├── three.min.js                # Offline local Three.js r128 library (603 KB)
 ├── pako.min.js                 # Offline local Pako 2.1.0 decompression library (46 KB)
 ├── embed.html                  # Root iframe preview player
+├── server.ps1                  # Native PowerShell localhost HTTP server with auto-launch
+├── start_server.bat            # Double-clickable Windows batch launcher
+├── server.py                   # Cross-platform Python localhost HTTP server
 ├── build_encrypted_dist.ps1    # Automated compilation & rolling-key encryption tool
 └── dist/
     ├── index.html              # Standalone encrypted single-file production build
@@ -126,24 +129,36 @@ zombie-defender/
 
 ---
 
-## 🚀 Getting Started & Local Play
+## 🚀 Getting Started & Localhost Terminal Server
 
-### Option 1: Play Standalone Encrypted Build (Recommended)
+### 🖥️ Option 1: Start Native Localhost Terminal Server (Recommended)
+Launch the zero-dependency, high-performance static server directly from the terminal or via double-click:
+
+**Windows PowerShell:**
+```powershell
+.\server.ps1
+```
+*(Optional flags: `.\server.ps1 -Port 8080 -NoBrowser`)*
+
+**Double-Click / Command Prompt:**
+```cmd
+start_server.bat
+```
+
+**Python 3:**
+```bash
+python server.py
+```
+
+- Automatically finds an open port (default: `http://localhost:8080/`).
+- Automatically launches your default web browser.
+- Live HTTP request and asset logging in the terminal.
+- Press `Ctrl+C` in the terminal to cleanly stop the server.
+
+### 📦 Option 2: Play Standalone Encrypted Build (Direct Offline)
 1. Navigate to the `dist/` directory.
 2. Double-click `dist/index.html` in Windows File Explorer (or open with Chrome, Edge, Firefox, Brave).
 3. The secure bootloader decrypts the tactical engine in-memory in under 0.5s—no web server required.
-
-### Option 2: Run Development Source
-1. Double-click `index.html` in the root workspace.
-2. Or serve via any local HTTP server:
-   ```bash
-   # Python 3
-   python -m http.server 8080
-
-   # Node.js npx
-   npx serve .
-   ```
-3. Open `http://localhost:8080` in your browser.
 
 ---
 
@@ -175,35 +190,3 @@ To embed Outpost Omega on your website, blog, CMS, or portal:
 - **Styling**: CSS3 Custom Properties, Cybernetic HUD Design, Rajdhani & Share Tech Mono Typography
 - **Compression & Encryption**: Pako (zlib/deflate) + Multi-byte Rolling XOR Cryptographic Cipher
 - **Packaging**: PowerShell Automated Build Pipeline
-
-
-## 🚀 How to Launch the Localhost Server
-You can start the terminal server using any of the following methods:
-
-**1. PowerShell (Recommended)**
-```bash
-.\server.ps1
-```
-
-_Optional parameters:_
-- Change port: `.\server.ps1 -Port 3000`
-- Suppress auto-opening browser: `.\server.ps1 -NoBrowser`
-
-**2. Double-Click / CMD Batch File**
-Double-click `start_server.bat` or run from Command Prompt:
-```bash
-start_server.bat
-```
-
-**3. Python 3 Alternative**
-```bash
-python server.py
-```
-
-## ✨ Server Features
-- Automatic Port Resolution: Defaults to http://localhost:8080/, automatically selecting the next open port if 8080 is in use.
-- Auto Browser Launch: Opens the game in your default browser on start.
-- Live Terminal Telemetry: Logs incoming HTTP requests, response status codes (200 OK, 404), and byte sizes in real-time.
-- Full Static Asset Support: Serves .html, .js, .css, .png, .svg, .json, and WebAssembly with proper MIME types, CORS headers, and no-cache policies.
-- Direct Dist Access: You can also navigate directly to http://localhost:8080/dist/index.html or http://localhost:8080/embed.html.
-- Graceful Shutdown: Press Ctrl+C in the terminal to stop the server at any time.
